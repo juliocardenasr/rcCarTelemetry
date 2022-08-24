@@ -211,6 +211,8 @@ void sendStringXY(String msg, int X, int Y)
 {
     unsigned char i;
     char c;
+
+    display.setCursor(X*6, Y*8);
     for (i = 0; i < msg.length(); i++) 
     {
         c = msg.charAt(i);   
@@ -242,6 +244,8 @@ void actualizeDisplay() {
                 sendStringXY("Avg:",  0, 4);
                 saverage = String(average) + "       ";
                 saverage = saverage.substring(0,7);
+                sendStringXY(saverage, 8, 4);
+                break;
         case atm:
                 sendStringXY("Press and Temp", 0, 0); 
                 sendStringXY("Temp:", 0, 2);
