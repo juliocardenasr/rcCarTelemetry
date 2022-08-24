@@ -19,7 +19,10 @@
                               "JULIO123"
                 clock: implement an hh:mm:ss clock
                 Console: print the previous variables each minute
-  Date        : Jul 15 2022
+                I2C: The base to comunicate with bmp280 mpu9250 and oled display
+                BMP280: to obtain atm pressure, temperature and altitude
+
+  Date        : Jul 17 2022
   platform    : lolin32 v1.0.0
 ********************************************************************************
 */
@@ -41,6 +44,7 @@ String saverage;
 #include <Ticker.h>
 Ticker  tickerLed;
 Ticker  tickerClock;
+Ticker  tickerBmp280;
 Ticker  tickerConsole;
 
 /*
@@ -122,6 +126,38 @@ void actualizeClock()
 
 /*
 ********************************************************************************
+  I2C variables
+********************************************************************************
+*/
+#define PinSDA 21
+#define PinSCL 22
+#include <Wire.h>
+
+/*
+********************************************************************************
+  BMP280 variables
+********************************************************************************
+*/
+#include <Adafruit_BMP280.h>
+Adafruit_BMP280 bmp;
+
+float  temperature;
+float  pressure;
+float  altitude;
+String stemperature;
+String spressure;
+String saltitude;
+
+void actualizeBmp280() 
+{
+    temperature = bmp.readTemperature();
+    pressure    = bmp.readPressure();
+    altitude    = bmp.readAltitude(1013.25);
+}
+
+
+/*
+********************************************************************************
   Console variables
 ********************************************************************************
 */
@@ -130,6 +166,12 @@ void actualizeConsole()
     Serial.print(stime);
     Serial.print(" ");
     Serial.println(average);
+    Serial.print("Temperature: ");
+    Serial.println(temperature);
+    Serial.print("Pressure   : ");
+    Serial.println(pressure);
+    Serial.print("Altitude   : ");
+    Serial.println(altitude);
 }
 
 /*
@@ -165,7 +207,25 @@ void setup()
     hours   = 0;
     stime   = "00:00:00";
     tickerClock.attach(1, actualizeClock);
-    Serial.println("Clock variables      : OK"); 
+    Serial.println("Clock variables      : OK");
+
+    //Initialize the I2C bus
+    Wire.begin(PinSDA,PinSCL); 
+    Serial.println("I2C Bus              : OK"); 
+    
+    //initalize bmp variables
+    temperature = 0.0;
+    pressure    = 0.0;
+    altitude    = 0.0;
+    unsigned status;
+    bmp.begin(0x76);
+    bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,     /* Operating Mode. */
+                    Adafruit_BMP280::SAMPLING_X2,     /* Temp. oversampling */
+                    Adafruit_BMP280::SAMPLING_X16,    /* Pressure oversampling */
+                    Adafruit_BMP280::FILTER_X16,      /* Filtering. */
+                    Adafruit_BMP280::STANDBY_MS_500); /* Standby time. */
+    tickerBmp280.attach(2, actualizeBmp280);
+    Serial.println("BMP280               : OK");
 
     // initialize console variables
     tickerConsole.attach(60, actualizeConsole);
