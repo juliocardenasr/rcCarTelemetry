@@ -22,11 +22,24 @@
                 I2C: The base to comunicate with bmp280 mpu9250 and oled display
                 BMP280: to obtain atm pressure, temperature and altitude
                 SSD1306: Oled Display to show in several pages the information
+                WIFI: Reach connection with only one wifi network
 
   Date        : Jul 19 2022
   platform    : lolin32 v1.0.0
 ********************************************************************************
 */
+
+/*
+**************************************************************************************************
+  Wifi variables
+**************************************************************************************************
+*/
+#include <WiFi.h>
+#include "arduino_secrets.h"
+const char* ssid;
+const char* password;
+String ipLocal;
+String s_ssid;
 
 /*
 ********************************************************************************
@@ -198,8 +211,6 @@ void sendStringXY(String msg, int X, int Y)
 {
     unsigned char i;
     char c;
-    
-    display.setCursor(X*6, Y*8);
     for (i = 0; i < msg.length(); i++) 
     {
         c = msg.charAt(i);   
@@ -220,10 +231,9 @@ void actualizeDisplay() {
     switch (indexPage) {
         case ip:
                 sendStringXY("IP local:", 0, 0);
-        //        sendStringXY(ipLocal,     2, 0);
-        //        sendStringXY("SSID    :", 4, 0);
-        //        sendStringXY(s_ssid,      6, 0);
-                
+                sendStringXY(ipLocal,     0, 2);
+                sendStringXY("SSID    :", 0, 4);
+                sendStringXY(s_ssid,      0, 6);
                 break; 
         case perf:
                 sendStringXY("Performance", 0, 0); 
@@ -232,8 +242,6 @@ void actualizeDisplay() {
                 sendStringXY("Avg:",  0, 4);
                 saverage = String(average) + "       ";
                 saverage = saverage.substring(0,7);
-                sendStringXY(saverage, 8, 4);
-                break;
         case atm:
                 sendStringXY("Press and Temp", 0, 0); 
                 sendStringXY("Temp:", 0, 2);
@@ -287,6 +295,21 @@ void setup()
     Serial.begin(115200);
     if (!Serial) delay(100);
     Serial.println("Serial port          : OK");
+
+    //initialize wifi variables
+    ssid = SECRET_SSID;
+    password = SECRET_PASSWORD;
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) 
+    {
+        Serial.print(".");
+        delay(500);
+    }
+    Serial.println("");
+    Serial.print("Wifi adress: ");
+    Serial.println(WiFi.localIP());
+    ipLocal = WiFi.localIP().toString().c_str();
+    s_ssid  = WiFi.SSID();
 
     // initialize performance Variables
     cycles = 0;
