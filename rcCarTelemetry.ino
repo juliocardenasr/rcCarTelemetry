@@ -42,6 +42,7 @@ String saverage;
 Ticker  tickerLed;
 Ticker  tickerClock;
 Ticker  tickerConsole;
+Ticker  tickerScanner;
 
 /*
 ********************************************************************************
@@ -121,6 +122,55 @@ void actualizeClock()
 }
 
 /*
+**************************************************************************************************
+  I2C variables
+**************************************************************************************************
+*/
+#define PinSDA 21
+#define PinSCL 22
+#include <Wire.h>
+
+/*
+********************************************************************************
+  i2c scanner
+********************************************************************************
+*/
+
+byte error, address;
+int nDevices;
+ 
+void actualizeScanner()
+{
+    Serial.println("Scanning...");
+    nDevices = 0;
+    for (address = 1; address < 127; address++ )
+    {
+        // The i2c_scanner uses the return value of
+        // the Write.endTransmisstion to see if
+        // a device did acknowledge to the address.
+        Wire.beginTransmission(address);
+        error = Wire.endTransmission();
+ 
+        if (error == 0)
+        {
+            Serial.print("I2C device found at address 0x");
+            if (address < 16) Serial.print("0");
+            Serial.print(address,HEX);
+            Serial.println("  !");
+            nDevices++;
+        }
+        else if (error==4)
+        {
+            Serial.print("Unknown error at address 0x");
+            if (address<16) Serial.print("0");
+            Serial.println(address,HEX);
+        }    
+    }
+    if (nDevices == 0) Serial.println("No I2C devices found\n");
+    else Serial.println("done\n"); 
+}
+
+/*
 ********************************************************************************
   Console variables
 ********************************************************************************
@@ -165,8 +215,16 @@ void setup()
     hours   = 0;
     stime   = "00:00:00";
     tickerClock.attach(1, actualizeClock);
-    Serial.println("Clock variables      : OK"); 
+    Serial.println("Clock variables      : OK");
 
+    //Initialize the I2C bus
+    Wire.begin(PinSDA,PinSCL); 
+    Serial.println("I2C Bus              : OK");
+
+    // initialize scanner variables
+    tickerScanner.attach(5, actualizeScanner);
+    Serial.println("Scanner variables    : OK");
+    
     // initialize console variables
     tickerConsole.attach(60, actualizeConsole);
     Serial.println("Console variables    : OK");
