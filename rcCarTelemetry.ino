@@ -23,8 +23,10 @@
                 BMP280: to obtain atm pressure, temperature and altitude
                 SSD1306: Oled Display to show in several pages the information
                 WIFI: Reach connection with only one wifi network
+				WebServer: Five pages, html, css and js. 3 ajax routines
+				           ip parameters, performance, bmp280 
 
-  Date        : Jul 19 2022
+  Date        : Jul 21 2022
   platform    : lolin32 v1.0.0
 ********************************************************************************
 */
@@ -59,9 +61,9 @@ String saverage;
 Ticker  tickerLed;
 Ticker  tickerClock;
 Ticker  tickerBmp280;
+Ticker  tickerConsole;
 Ticker  tickerPage;
 Ticker  tickerDisplay;
-Ticker  tickerConsole;
 
 /*
 ********************************************************************************
@@ -179,8 +181,10 @@ void actualizeBmp280()
 */
 void actualizeConsole() 
 {
-    Serial.print(stime);
-    Serial.print(" ");
+	Serial.println();
+	Serial.print("Time      :  ");
+    Serial.println(stime);
+    Serial.print("cycles/sec : ");
     Serial.println(average);
     Serial.print("Temperature: ");
     Serial.println(temperature);
@@ -232,13 +236,14 @@ void actualizeDisplay() {
     display.clearDisplay();
     switch (indexPage) {
         case ip:
-                sendStringXY("IP local:", 0, 0);
-                sendStringXY(ipLocal,     0, 2);
-                sendStringXY("SSID    :", 0, 4);
-                sendStringXY(s_ssid,      0, 6);
+		        sendStringXY("1 - Network  ",  0, 0);
+                sendStringXY("IP local:",      0, 2);
+                sendStringXY(ipLocal,          0, 3);
+                sendStringXY("SSID    :",      0, 5);
+                sendStringXY(s_ssid,           0, 6);
                 break; 
         case perf:
-                sendStringXY("Performance", 0, 0); 
+                sendStringXY("2 - Performance", 0, 0); 
                 sendStringXY("Time:", 0, 2);
                 sendStringXY(stime, 8, 2);
                 sendStringXY("Avg:",  0, 4);
@@ -247,7 +252,7 @@ void actualizeDisplay() {
                 sendStringXY(saverage, 8, 4);
                 break;
         case atm:
-                sendStringXY("Press and Temp", 0, 0); 
+                sendStringXY("3 - Press. and Temp.", 0, 0); 
                 sendStringXY("Temp:", 0, 2);
                 stemperature = String(temperature) + "       ";
                 stemperature = stemperature.substring(0,7);
@@ -262,31 +267,113 @@ void actualizeDisplay() {
                 sendStringXY(saltitude, 8, 6); 
                 break;
         case mcuA: 
-                sendStringXY("Accelerometer", 0, 0);
+                sendStringXY("4 - Accelerometer", 0, 0);
                 break;
         case mcuG: 
-                sendStringXY("Gyroscope", 0, 0);
+                sendStringXY("5 - Gyroscope", 0, 0);
                 break;
         case mcuM: 
-                sendStringXY("Magnetometer", 0, 0);
+                sendStringXY("6 - Magnetometer", 0, 0);
                 break;
         case batt: 
-                sendStringXY("Battery", 0, 0);
+                sendStringXY("7 - Battery", 0, 0);
                 break;                        
         case inf:
-                sendStringXY("The quick brown ", 0, 0);
-                sendStringXY("fox jumps over  ", 0, 1);
-                sendStringXY("the lazy dog    ", 0, 2); 
-                sendStringXY("0123456789      ", 0, 3); 
-                sendStringXY("THE QUICK BROWN ", 0, 4); 
-                sendStringXY("FOX JUMPS OVER  ", 0, 5); 
-                sendStringXY("THE LAZY DOG    ", 0, 6);
-                sendStringXY("01234567890     ", 0, 7);
+		        sendStringXY("8 - Information     ", 0, 0);
+                sendStringXY("The quick brown fox ", 0, 2);
+                sendStringXY("jumps over the lazy ", 0, 3);
+                sendStringXY("dog 01234567890     ", 0, 4); 
+                sendStringXY("THE QUICK BROWN FOX ", 0, 5); 
+                sendStringXY("JUMPS OVER THE LAZY ", 0, 6); 
+                sendStringXY("DOG 01234567890     ", 0, 7);
                 break;
         default: 
                 break;                               
     }
     display.display();
+}
+
+
+/*
+**************************************************************************************************
+  WebServer variables
+**************************************************************************************************
+*/
+
+#include <WebServer.h>
+WebServer server(80); 
+
+#include "webpages.h"
+
+void rootPage(){
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/html", pageHeader);
+    server.sendContent(bodyHome);
+    server.sendContent(pageFooter);
+    server.sendContent("");  
+}
+
+void ipPage(){
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/html", pageHeader);
+    server.sendContent(bodyIP);
+    server.sendContent(pageFooter);
+    server.sendContent("");  
+}
+
+void perfPage(){
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/html", pageHeader);
+    server.sendContent(bodyPerf);
+    server.sendContent(pageFooter);
+    server.sendContent("");  
+}
+
+void bmpPage(){
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/html", pageHeader);
+    server.sendContent(bodyBMP);
+    server.sendContent(pageFooter);
+    server.sendContent("");  
+}
+
+void imuPage(){
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/html", pageHeader);
+    server.sendContent(bodyIMU);
+    server.sendContent(pageFooter);
+    server.sendContent("");  
+}
+
+void pageNotFound() {
+    server.send(404, "text/plain", "ooops page not found"); 
+    
+}
+
+//AJAX response of ip variables JSON coded
+void getipv(){
+    String response;
+    response = "{\"ip\":\"" + ipLocal + "\",\"ssid\":\"" + ssid + "\"}";
+    Serial.println(response);
+    server.send(200, "json", response);
+  
+}
+
+void getprf(){
+  String response;
+  response = "{\"uptime\":\"" + stime + "\",\"average\":" + String(average) + "}";
+  Serial.println(response);
+  server.send(200, "json", response);
+}
+
+void getbmp(){
+    String response;
+    response = "{\"temperature\":" + String(temperature) + ",\"pressure\":" + String(pressure) + ",\"altitude\":" + String(altitude) + "}";
+    Serial.println(response);
+    server.send(200, "json", response);
+}
+
+void getmcu(){
 }
 
 /*
@@ -379,10 +466,24 @@ void setup()
     tickerPage.attach(8, changePage);
     tickerDisplay.attach(1, actualizeDisplay);
     Serial.println("Display variables    : OK");
+
+	// initialize web server variables
+    server.on("/Home.html",    rootPage);
+    server.on("/IP.html",   ipPage);
+    server.on("/Perf.html", perfPage);
+    server.on("/BMP.html",  bmpPage);
+    server.on("/IMU.html",  imuPage);
+    server.onNotFound(pageNotFound);
+    server.on("/getipv",    getipv);
+    server.on("/getprf",    getprf);
+    server.on("/getbmp",    getbmp);
+    server.on("/getmcu",    getmcu);
+    server.begin();
 }
 
 void loop()
 {
-    cycles++;
+    server.handleClient();  
+	cycles++;
     average = cycles / elapsedSeconds;
 }
