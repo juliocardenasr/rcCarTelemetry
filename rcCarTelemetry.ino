@@ -25,8 +25,10 @@
                 WIFI: Reach connection with only one wifi network
 				WebServer: Five pages, html, css and js. 3 ajax routines
 				           ip parameters, performance, bmp280 
+			    MPU9250: connect the MPU and read accelerometer data.
+				         The data is presented in the OLED display and console			   
 
-  Date        : Jul 21 2022
+  Date        : Jul 24 2022
   platform    : lolin32 v1.0.0
 ********************************************************************************
 */
@@ -61,6 +63,7 @@ String saverage;
 Ticker  tickerLed;
 Ticker  tickerClock;
 Ticker  tickerBmp280;
+Ticker  tickerMPU9250;
 Ticker  tickerConsole;
 Ticker  tickerPage;
 Ticker  tickerDisplay;
@@ -173,6 +176,31 @@ void actualizeBmp280()
     altitude    = bmp.readAltitude(1013.25);
 }
 
+/*
+**************************************************************************************************
+  MPU9250 variables
+**************************************************************************************************
+*/
+#include <MPU9250_WE.h>
+#define MPU9250_ADDR 0x68
+MPU9250_WE MPU9250 = MPU9250_WE(MPU9250_ADDR);
+
+// acelerometer variables
+xyzFloat accRaw; 
+xyzFloat accCorrRaw;
+xyzFloat gValue; 
+float    resultantG;
+String   saccx;
+String   saccy;
+String   saccz;
+
+void actualizeMPU9250() 
+{
+     accRaw     = MPU9250.getAccRawValues();
+     accCorrRaw = MPU9250.getCorrectedAccRawValues();
+     gValue     = MPU9250.getGValues();
+     resultantG = MPU9250.getResultantG(gValue);
+}
 
 /*
 ********************************************************************************
@@ -181,10 +209,12 @@ void actualizeBmp280()
 */
 void actualizeConsole() 
 {
-	Serial.println();
+	Serial.println("\n***************************************************");
 	Serial.print("Time      :  ");
     Serial.println(stime);
     Serial.print("cycles/sec : ");
+	Serial.println();
+
     Serial.println(average);
     Serial.print("Temperature: ");
     Serial.println(temperature);
@@ -192,6 +222,15 @@ void actualizeConsole()
     Serial.println(pressure);
     Serial.print("Altitude   : ");
     Serial.println(altitude);
+	Serial.println();
+
+	Serial.print("Acceleration x: ");
+    Serial.println(accCorrRaw.x); 
+    Serial.print("Acceleration y: ");
+    Serial.println(accCorrRaw.y); 
+    Serial.print("Acceleration z: ");
+    Serial.println(accCorrRaw.z); 
+
 }
 
 /*
@@ -268,6 +307,17 @@ void actualizeDisplay() {
                 break;
         case mcuA: 
                 sendStringXY("4 - Accelerometer", 0, 0);
+				sendStringXY("Acc x:", 0, 2);
+                saccx = String(accCorrRaw.x).substring(0,7) + "       ";
+                sendStringXY(saccx, 8, 2);
+                
+                sendStringXY("Acc y:", 0, 4);
+                saccy = String(accCorrRaw.y).substring(0,7) + "       ";
+                sendStringXY(saccy, 8, 4);
+                
+                sendStringXY("Acc z:", 0, 6);
+                saccz = String(accCorrRaw.z).substring(0,7) + "       ";
+                sendStringXY(saccz, 8, 6);
                 break;
         case mcuG: 
                 sendStringXY("5 - Gyroscope", 0, 0);
@@ -443,6 +493,26 @@ void setup()
                     Adafruit_BMP280::STANDBY_MS_500); /* Standby time. */
     tickerBmp280.attach(2, actualizeBmp280);
     Serial.println("BMP280               : OK");
+
+    // initialize MPU9250 variables
+    if (!MPU9250.init())
+    {
+        Serial.println("MPU9250 does not respond");
+    }
+    else
+    {
+        Serial.println("MPU9250 is connected");
+    }
+    Serial.println("Position you MPU9250 flat and don't move it - calibrating...");
+    delay(1000);
+    MPU9250.autoOffsets();
+    Serial.println("Done!");
+    MPU9250.setSampleRateDivider(5);
+    MPU9250.setAccRange(MPU9250_ACC_RANGE_2G);
+    MPU9250.enableAccDLPF(true);
+    MPU9250.setAccDLPF(MPU9250_DLPF_6);
+    tickerMPU9250.attach_ms(900, actualizeMPU9250);
+    Serial.println("MPU9250             : OK");
 
     // initialize console variables
     tickerConsole.attach(60, actualizeConsole);
