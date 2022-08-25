@@ -28,7 +28,8 @@
 				           ip parameters, performance, bmp280 
 			    MPU9250: connect the MPU and read accelerometer data.
 				         The data is presented in the OLED display and console
-                         Read and present the gyroscope data			   
+                         Read and present the gyroscope data
+                         Read and present the magnometer data			   
 
   Date        : Jul 27 2022
   platform    : lolin32 v1.0.0
@@ -204,6 +205,13 @@ String   sgyrx;
 String   sgyry;
 String   sgyrz;
 
+// magnetometer variables
+xyzFloat mag;
+String   smagx;
+String   smagy;
+String   smagz;
+ 
+
 void actualizeMPU9250() 
 {
      accRaw     = MPU9250.getAccRawValues();
@@ -214,8 +222,10 @@ void actualizeMPU9250()
      gyrRaw     = MPU9250.getGyrRawValues();
      gyrCorrRaw = MPU9250.getCorrectedGyrRawValues();
      gyr        = MPU9250.getGyrValues();
-}
 
+     mag        = MPU9250.getMagValues();
+}
+ 
 /*
 ********************************************************************************
   Console variables
@@ -244,6 +254,7 @@ void actualizeConsole()
     Serial.println(accCorrRaw.y); 
     Serial.print("Acceleration z: ");
     Serial.println(accCorrRaw.z); 
+    Serial.println();
 
     Serial.print("Gyroscope x: ");
     Serial.println(gyr.x);
@@ -251,7 +262,15 @@ void actualizeConsole()
     Serial.println(gyr.y); 
     Serial.print("Gyroscope z: ");
     Serial.println(gyr.z);  
+    Serial.println();
 
+    Serial.print("Manetometer x: ");
+    Serial.println(mag.x); 
+    Serial.print("Manetometer y: ");
+    Serial.println(mag.y); 
+    Serial.print("Manetometer z: ");
+    Serial.println(mag.z);
+    Serial.println();     
 }
 
 /*
@@ -340,7 +359,6 @@ void actualizeDisplay() {
                 sendStringXY("Acc z:", 0, 6);
                 saccz = String(accCorrRaw.z).substring(0,7) + "       ";
                 sendStringXY(saccz, 8, 6);
-
                 break;
         case mcuG: 
                 sendStringXY("5 - Gyroscope", 0, 0);
@@ -356,10 +374,21 @@ void actualizeDisplay() {
                 sendStringXY("Gyr z:", 0, 6);
                 sgyrz = String(gyr.z).substring(0,7) + "       ";
                 sendStringXY(sgyrz, 8, 6);
-
                 break;
         case mcuM: 
                 sendStringXY("6 - Magnetometer", 0, 0);
+
+                sendStringXY("Mag x:", 0, 2);
+                smagx = String(mag.x).substring(0,7) + "       ";
+                sendStringXY(smagx, 8, 2);
+                
+                sendStringXY("Mag y:", 0, 4);
+                smagy = String(mag.y).substring(0,7) + "       ";
+                sendStringXY(smagy, 8, 4);
+
+                sendStringXY("Mag z:", 0, 6);
+                smagz = String(mag.z).substring(0,7) + "       ";
+                sendStringXY(smagz, 8, 6);
                 break;
         case batt: 
                 sendStringXY("7 - Battery", 0, 0);
@@ -553,6 +582,16 @@ void setup()
     MPU9250.enableGyrDLPF();
     MPU9250.setGyrDLPF(MPU9250_DLPF_6);
 
+    if (!MPU9250.initMagnetometer())
+    {
+        Serial.println("Magnetometer does not respond");
+    }
+    else
+    {
+        Serial.println("Magnetometer is connected");
+    }
+    MPU9250.setMagOpMode(AK8963_CONT_MODE_100HZ);
+
     tickerMPU9250.attach_ms(900, actualizeMPU9250);
     Serial.println("MPU9250             : OK");
 
@@ -596,6 +635,6 @@ void setup()
 void loop()
 {
     server.handleClient();  
-	cycles++;
+    cycles++;
     average = cycles / elapsedSeconds;
 }
