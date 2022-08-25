@@ -13,6 +13,7 @@
                 All this data will showed in serial console, 128x64 display and 
                 web page.
                 The web server will build in the lolin32 card. 
+
   This sprint : Ticker: to manage the time of diferent tasks
                 Perfomance variables: cycles the main loop per second
                 Led Whitness: implement the morse code for the message:
@@ -26,9 +27,10 @@
 				WebServer: Five pages, html, css and js. 3 ajax routines
 				           ip parameters, performance, bmp280 
 			    MPU9250: connect the MPU and read accelerometer data.
-				         The data is presented in the OLED display and console			   
+				         The data is presented in the OLED display and console
+                         Read and present the gyroscope data			   
 
-  Date        : Jul 24 2022
+  Date        : Jul 27 2022
   platform    : lolin32 v1.0.0
 ********************************************************************************
 */
@@ -194,12 +196,24 @@ String   saccx;
 String   saccy;
 String   saccz;
 
+// gyroscope variables
+xyzFloat gyrRaw; 
+xyzFloat gyrCorrRaw;
+xyzFloat gyr;
+String   sgyrx;
+String   sgyry;
+String   sgyrz;
+
 void actualizeMPU9250() 
 {
      accRaw     = MPU9250.getAccRawValues();
      accCorrRaw = MPU9250.getCorrectedAccRawValues();
      gValue     = MPU9250.getGValues();
      resultantG = MPU9250.getResultantG(gValue);
+
+     gyrRaw     = MPU9250.getGyrRawValues();
+     gyrCorrRaw = MPU9250.getCorrectedGyrRawValues();
+     gyr        = MPU9250.getGyrValues();
 }
 
 /*
@@ -209,13 +223,13 @@ void actualizeMPU9250()
 */
 void actualizeConsole() 
 {
-	Serial.println("\n***************************************************");
+	Serial.println("\n\n\n***************************************************");
 	Serial.print("Time      :  ");
     Serial.println(stime);
     Serial.print("cycles/sec : ");
-	Serial.println();
-
     Serial.println(average);
+    Serial.println();
+
     Serial.print("Temperature: ");
     Serial.println(temperature);
     Serial.print("Pressure   : ");
@@ -230,6 +244,13 @@ void actualizeConsole()
     Serial.println(accCorrRaw.y); 
     Serial.print("Acceleration z: ");
     Serial.println(accCorrRaw.z); 
+
+    Serial.print("Gyroscope x: ");
+    Serial.println(gyr.x);
+    Serial.print("Gyroscope y: ");
+    Serial.println(gyr.y); 
+    Serial.print("Gyroscope z: ");
+    Serial.println(gyr.z);  
 
 }
 
@@ -307,6 +328,7 @@ void actualizeDisplay() {
                 break;
         case mcuA: 
                 sendStringXY("4 - Accelerometer", 0, 0);
+
 				sendStringXY("Acc x:", 0, 2);
                 saccx = String(accCorrRaw.x).substring(0,7) + "       ";
                 sendStringXY(saccx, 8, 2);
@@ -318,9 +340,23 @@ void actualizeDisplay() {
                 sendStringXY("Acc z:", 0, 6);
                 saccz = String(accCorrRaw.z).substring(0,7) + "       ";
                 sendStringXY(saccz, 8, 6);
+
                 break;
         case mcuG: 
                 sendStringXY("5 - Gyroscope", 0, 0);
+
+                sendStringXY("Gyr x:", 0, 2);
+                sgyrx = String(gyr.x).substring(0,7) + "       ";
+                sendStringXY(sgyrx, 8, 2);
+                
+                sendStringXY("Gyr y:", 0, 4);
+                sgyry = String(gyr.y).substring(0,7) + "       ";
+                sendStringXY(sgyry, 8, 4);
+
+                sendStringXY("Gyr z:", 0, 6);
+                sgyrz = String(gyr.z).substring(0,7) + "       ";
+                sendStringXY(sgyrz, 8, 6);
+
                 break;
         case mcuM: 
                 sendStringXY("6 - Magnetometer", 0, 0);
@@ -507,10 +543,16 @@ void setup()
     delay(1000);
     MPU9250.autoOffsets();
     Serial.println("Done!");
+
     MPU9250.setSampleRateDivider(5);
     MPU9250.setAccRange(MPU9250_ACC_RANGE_2G);
     MPU9250.enableAccDLPF(true);
     MPU9250.setAccDLPF(MPU9250_DLPF_6);
+
+    MPU9250.setGyrRange(MPU9250_GYRO_RANGE_250);
+    MPU9250.enableGyrDLPF();
+    MPU9250.setGyrDLPF(MPU9250_DLPF_6);
+
     tickerMPU9250.attach_ms(900, actualizeMPU9250);
     Serial.println("MPU9250             : OK");
 
