@@ -206,6 +206,60 @@ setInterval(getbmp, 1000);
 
 char bodyIMU[] = R"=====(
 <h1>IMU 9250 variables</h1>
+<form action="">
+<fieldset>
+<legend>IMU9250 key values</legend>
+<div><label for="accx">Acceleration x</label><span id="accx">_</span></div>
+<div><label for="accy">Acceleration y</label><span id="accy">_</span></div>
+<div><label for="accz">Acceleration z</label><span id="accz">_</span></div>
+<div><label for="gyrx">Gyroscope x</label><span id="gyrx">_</span></div>
+<div><label for="gyry">Gyroscope y</label><span id="gyry">_</span></div>
+<div><label for="gyrz">Gyroscope z</label><span id="gyrz">_</span></div>
+<div><label for="magx">Magnetometer x</label><span id="magx">_</span></div>
+<div><label for="magy">Magnetometer y</label><span id="magy">_</span></div>
+<div><label for="magz">Magnetometer z</label><span id="magz">_</span></div>
+<div><label for="angx">Angles x</label><span id="angx">_</span></div>
+<div><label for="angy">Angles y</label><span id="angy">_</span></div>
+<div><label for="angz">Angles z</label><span id="angz">_</span></div>
+<div><label for="pitch">Pitch</label><span id="pitch">_</span></div>
+<div><label for="roll">Roll</label><span id="roll">_</span></div>
+</fieldset>
+</form>
+<script> 
+function getmcu() {
+var reqxml
+var resp
+var obj
+reqxml = new XMLHttpRequest()
+reqxml.onreadystatechange = function () {
+if (this.readyState === 4 && this.status === 200) {
+resp = reqxml.responseText
+console.log(resp)
+obj = JSON.parse(resp)
+document.getElementById('accx').innerHTML = obj.accx
+document.getElementById('accy').innerHTML = obj.accy
+document.getElementById('accz').innerHTML = obj.accz
+document.getElementById('gyrx').innerHTML = obj.gyrx
+document.getElementById('gyry').innerHTML = obj.gyry
+document.getElementById('gyrz').innerHTML = obj.gyrz
+document.getElementById('magx').innerHTML = obj.magx
+document.getElementById('magy').innerHTML = obj.magy
+document.getElementById('magz').innerHTML = obj.magz
+document.getElementById('angx').innerHTML = obj.angx
+document.getElementById('angy').innerHTML = obj.angy
+document.getElementById('angz').innerHTML = obj.angz
+document.getElementById('pitch').innerHTML = obj.pitch
+document.getElementById('roll').innerHTML = obj.roll
+}
+}
+var urlXML = "/getmcu"
+console.log(urlXML)
+reqxml.open('GET', urlXML, true)
+reqxml.send()
+}
+window.onload = getmcu();
+setInterval(getmcu, 1000);
+</script> 
 )=====";
 
 char pageFooter[] = R"=====(

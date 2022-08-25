@@ -29,9 +29,13 @@
 			    MPU9250: connect the MPU and read accelerometer data.
 				         The data is presented in the OLED display and console
                          Read and present the gyroscope data
-                         Read and present the magnometer data			   
+                         Read and present the magnometer data
+                The function actualizeDisplay was modified
+                Read and present the angles data
+                Add the ajax funcion for the MPU9250
 
-  Date        : Jul 27 2022
+
+  Date        : Jul 28 2022
   platform    : lolin32 v1.0.0
 ********************************************************************************
 */
@@ -55,7 +59,6 @@ String s_ssid;
 */
 unsigned long cycles;
 unsigned long average;
-String saverage;
 
 /*
 ********************************************************************************
@@ -168,9 +171,6 @@ Adafruit_BMP280 bmp;
 float  temperature;
 float  pressure;
 float  altitude;
-String stemperature;
-String spressure;
-String saltitude;
 
 void actualizeBmp280() 
 {
@@ -193,24 +193,20 @@ xyzFloat accRaw;
 xyzFloat accCorrRaw;
 xyzFloat gValue; 
 float    resultantG;
-String   saccx;
-String   saccy;
-String   saccz;
 
 // gyroscope variables
 xyzFloat gyrRaw; 
 xyzFloat gyrCorrRaw;
 xyzFloat gyr;
-String   sgyrx;
-String   sgyry;
-String   sgyrz;
 
 // magnetometer variables
 xyzFloat mag;
-String   smagx;
-String   smagy;
-String   smagz;
- 
+
+// angles
+xyzFloat angles;
+float    pitch;
+float    roll;
+float    jaw;
 
 void actualizeMPU9250() 
 {
@@ -224,6 +220,10 @@ void actualizeMPU9250()
      gyr        = MPU9250.getGyrValues();
 
      mag        = MPU9250.getMagValues();
+
+     angles     = MPU9250.getAngles();
+     pitch      = MPU9250.getPitch();
+     roll       = MPU9250.getRoll();
 }
  
 /*
@@ -264,12 +264,24 @@ void actualizeConsole()
     Serial.println(gyr.z);  
     Serial.println();
 
-    Serial.print("Manetometer x: ");
+    Serial.print("Magnetometer x: ");
     Serial.println(mag.x); 
-    Serial.print("Manetometer y: ");
+    Serial.print("Magnetometer y: ");
     Serial.println(mag.y); 
-    Serial.print("Manetometer z: ");
+    Serial.print("Magnetometer z: ");
     Serial.println(mag.z);
+    Serial.println();
+
+    Serial.print("Angle x: ");
+    Serial.println(angles.x); 
+    Serial.print("Angle y: ");
+    Serial.println(angles.y); 
+    Serial.print("Angle z: ");
+    Serial.println(angles.z);
+    Serial.print("Pitch  : ");
+    Serial.println(pitch);
+    Serial.print("Roll   : ");
+    Serial.println(roll);
     Serial.println();     
 }
 
@@ -288,7 +300,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 int indexPage;
 int indexPagePrevious;
 int maxPage;
-enum pages {ip, perf, atm, mcuA, mcuG, mcuM, batt, inf};
+enum pages {ip, perf, atm, mcuA, mcuG, mcuM, ang, batt, inf};
 
 void sendStringXY(String msg, int X, int Y)
 {
@@ -301,6 +313,15 @@ void sendStringXY(String msg, int X, int Y)
         c = msg.charAt(i);   
         display.write(c);
     }
+}
+
+void messageValue(String message, float value, int row, int col1, int col2)
+{
+    String svalue;
+    sendStringXY(message, col1, row);
+    svalue = String(value) + "       ";
+    svalue = svalue.substring(0,7);
+    sendStringXY(svalue, col2, row);
 }
 
 void changePage(){
@@ -322,79 +343,48 @@ void actualizeDisplay() {
                 sendStringXY(s_ssid,           0, 6);
                 break; 
         case perf:
-                sendStringXY("2 - Performance", 0, 0); 
-                sendStringXY("Time:", 0, 2);
-                sendStringXY(stime, 8, 2);
-                sendStringXY("Avg:",  0, 4);
-                saverage = String(average) + "       ";
-                saverage = saverage.substring(0,7);
-                sendStringXY(saverage, 8, 4);
+                sendStringXY("2 - Performance", 0, 0);
+                sendStringXY("Time:",           0, 2);
+                sendStringXY(stime,             8, 2);
+                messageValue("Avg:", average, 4, 0, 8);
                 break;
         case atm:
-                sendStringXY("3 - Press. and Temp.", 0, 0); 
-                sendStringXY("Temp:", 0, 2);
-                stemperature = String(temperature) + "       ";
-                stemperature = stemperature.substring(0,7);
-                sendStringXY(stemperature, 8, 2);
-                sendStringXY("Pres:", 0, 4);
-                spressure = String(pressure) + "       ";
-                spressure = spressure.substring(0,7);
-                sendStringXY(spressure, 8, 4);
-                sendStringXY("Alt :", 0, 6); 
-                saltitude = String(altitude) + "       ";
-                saltitude = saltitude.substring(0,7);
-                sendStringXY(saltitude, 8, 6); 
+                sendStringXY("3 - Press. and Temp.", 0, 0);
+                messageValue("Temp:", temperature, 2, 0, 8);
+                messageValue("Pres:", pressure,    4, 0, 8);
+                messageValue("Alt :", altitude,    6, 0, 8);  
                 break;
         case mcuA: 
                 sendStringXY("4 - Accelerometer", 0, 0);
-
-				sendStringXY("Acc x:", 0, 2);
-                saccx = String(accCorrRaw.x).substring(0,7) + "       ";
-                sendStringXY(saccx, 8, 2);
-                
-                sendStringXY("Acc y:", 0, 4);
-                saccy = String(accCorrRaw.y).substring(0,7) + "       ";
-                sendStringXY(saccy, 8, 4);
-                
-                sendStringXY("Acc z:", 0, 6);
-                saccz = String(accCorrRaw.z).substring(0,7) + "       ";
-                sendStringXY(saccz, 8, 6);
-                break;
+                messageValue("Acc x:", accCorrRaw.x, 2, 0, 8);
+                messageValue("Acc y:", accCorrRaw.y, 4, 0, 8);
+                messageValue("Acc z:", accCorrRaw.z, 6, 0, 8); 
+                break;               
         case mcuG: 
                 sendStringXY("5 - Gyroscope", 0, 0);
-
-                sendStringXY("Gyr x:", 0, 2);
-                sgyrx = String(gyr.x).substring(0,7) + "       ";
-                sendStringXY(sgyrx, 8, 2);
-                
-                sendStringXY("Gyr y:", 0, 4);
-                sgyry = String(gyr.y).substring(0,7) + "       ";
-                sendStringXY(sgyry, 8, 4);
-
-                sendStringXY("Gyr z:", 0, 6);
-                sgyrz = String(gyr.z).substring(0,7) + "       ";
-                sendStringXY(sgyrz, 8, 6);
-                break;
+                messageValue("Gyr x:", gyr.x, 2, 0, 8);
+                messageValue("Gyr y:", gyr.y, 4, 0, 8);
+                messageValue("Gyr z:", gyr.z, 6, 0, 8);
+                break;           
         case mcuM: 
                 sendStringXY("6 - Magnetometer", 0, 0);
-
-                sendStringXY("Mag x:", 0, 2);
-                smagx = String(mag.x).substring(0,7) + "       ";
-                sendStringXY(smagx, 8, 2);
-                
-                sendStringXY("Mag y:", 0, 4);
-                smagy = String(mag.y).substring(0,7) + "       ";
-                sendStringXY(smagy, 8, 4);
-
-                sendStringXY("Mag z:", 0, 6);
-                smagz = String(mag.z).substring(0,7) + "       ";
-                sendStringXY(smagz, 8, 6);
-                break;
+                messageValue("Mag x:", mag.x, 2, 0, 8);
+                messageValue("Mag y:", mag.y, 4, 0, 8);
+                messageValue("Mag z:", mag.z, 6, 0, 8);
+                break;                
+        case ang:
+                sendStringXY("7 - Angles", 0, 0);
+                messageValue("Ang x:", angles.x, 2, 0, 8);
+                messageValue("Ang y:", angles.y, 3, 0, 8);
+                messageValue("Ang z:", angles.z, 4, 0, 8);
+                messageValue("Pitch:", pitch,    6, 0, 8);
+                messageValue("Roll :", roll,     7, 0, 8);
+                break;                      
         case batt: 
-                sendStringXY("7 - Battery", 0, 0);
+                sendStringXY("8 - Battery", 0, 0);
                 break;                        
         case inf:
-		        sendStringXY("8 - Information     ", 0, 0);
+		        sendStringXY("9 - Information     ", 0, 0);
                 sendStringXY("The quick brown fox ", 0, 2);
                 sendStringXY("jumps over the lazy ", 0, 3);
                 sendStringXY("dog 01234567890     ", 0, 4); 
@@ -466,7 +456,8 @@ void pageNotFound() {
 }
 
 //AJAX response of ip variables JSON coded
-void getipv(){
+void getipv()
+{
     String response;
     response = "{\"ip\":\"" + ipLocal + "\",\"ssid\":\"" + ssid + "\"}";
     Serial.println(response);
@@ -474,11 +465,12 @@ void getipv(){
   
 }
 
-void getprf(){
-  String response;
-  response = "{\"uptime\":\"" + stime + "\",\"average\":" + String(average) + "}";
-  Serial.println(response);
-  server.send(200, "json", response);
+void getprf()
+{
+    String response;
+    response = "{\"uptime\":\"" + stime + "\",\"average\":" + String(average) + "}";
+    Serial.println(response);
+    server.send(200, "json", response);
 }
 
 void getbmp(){
@@ -488,7 +480,17 @@ void getbmp(){
     server.send(200, "json", response);
 }
 
-void getmcu(){
+void getmcu()
+{
+    String response;
+    response = "{\"accx\":"  + String(accCorrRaw.x) + ",\"accy\":" + String(accCorrRaw.y) + ",\"accz\":" + String(accCorrRaw.z) +
+               ",\"gyrx\":"  + String(gyrCorrRaw.x) + ",\"gyry\":" + String(gyrCorrRaw.y) + ",\"gyrz\":" + String(gyrCorrRaw.z) +
+               ",\"magx\":"  + String(mag.x)        + ",\"magy\":" + String(mag.y)        + ",\"magz\":" + String(mag.z)        +
+               ",\"angx\":"  + String(angles.x)     + ",\"angy\":" + String(angles.y)     + ",\"angz\":" + String(angles.z)     +
+               ",\"pitch\":" + String(pitch)        + ",\"roll\":" + String(roll)         +
+               "}";
+    Serial.println(response);
+    server.send(200, "json", response);         
 }
 
 /*
@@ -602,7 +604,7 @@ void setup()
     // initialize display variables
     indexPage         = 0;
     indexPagePrevious = 0;
-    maxPage           = 8;
+    maxPage           = 9;
     if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C, false, false)) 
     {
         Serial.println(F("SSD1306 allocation failed"));
@@ -619,7 +621,7 @@ void setup()
     Serial.println("Display variables    : OK");
 
 	// initialize web server variables
-    server.on("/Home.html",    rootPage);
+    server.on("/Home.html", rootPage);
     server.on("/IP.html",   ipPage);
     server.on("/Perf.html", perfPage);
     server.on("/BMP.html",  bmpPage);
