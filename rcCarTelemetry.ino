@@ -33,6 +33,7 @@
                 The function actualizeDisplay was modified
                 Read and present the angles data
                 Add the ajax funcion for the MPU9250
+                Read battery voltages, show them in console, display, webserver
 
 
   Date        : Jul 28 2022
@@ -70,6 +71,7 @@ Ticker  tickerLed;
 Ticker  tickerClock;
 Ticker  tickerBmp280;
 Ticker  tickerMPU9250;
+Ticker  tickerBattery;
 Ticker  tickerConsole;
 Ticker  tickerPage;
 Ticker  tickerDisplay;
@@ -225,7 +227,68 @@ void actualizeMPU9250()
      pitch      = MPU9250.getPitch();
      roll       = MPU9250.getRoll();
 }
+
+ /*
+**************************************************************************************************
+  Battery variables
+**************************************************************************************************
+*/
+float v1s;
+float v1t;
+float v1m;
+float k1m;
+float c1p;
  
+float v2s;
+float v2t;
+float v2m;
+float k2m;
+float c2p;
+
+float v3s;
+float v3t; 
+float v3m;
+float k3m;
+float c3p;
+
+int const PINV1T = 36;
+int const PINV2T = 39;
+int const PINV3T = 32;
+
+//constants to convert read values to voltage 
+float const    m = (3.2 -0.1) / (4095-0);
+float const    b = 3.2 - m*4095;
+
+//constants to calculate the cell capacity percentage
+float const   m1 = (100.0 - 0.0) / (4.2 - 3.3);
+float const   b1 = 100.0 - m1 * 4.2;
+
+float readVoltage(int PIN)
+{
+     int volt;
+     volt = analogRead(PIN);
+     return m*volt + b;
+}
+
+void actualizeBattery()
+{
+    v1t = readVoltage(PINV1T);
+    v2t = readVoltage(PINV2T);
+    v3t = readVoltage(PINV3T);
+
+    v1s = k1m * v1t;
+    v2s = k2m * v2t;
+    v3s = k3m * v3t;
+
+    v1m = v1s;
+    v2m = v2s - v1s;
+    v3m = v3s - v2s;
+
+    c1p = m1*v1m + b1;
+    c2p = m1*v2m + b1;
+    c3p = m1*v3m + b1; 
+}
+
 /*
 ********************************************************************************
   Console variables
@@ -382,6 +445,12 @@ void actualizeDisplay() {
                 break;                      
         case batt: 
                 sendStringXY("8 - Battery", 0, 0);
+                messageValue("Cell 1:", v1m, 2, 0, 8);
+                messageValue("     %:", c1p, 3, 0, 8);
+                messageValue("Cell 2:", v2m, 4, 0, 8);
+                messageValue("     %:", c2p, 5, 0, 8);
+                messageValue("Cell 3:", v3m, 6, 0, 8);
+                messageValue("     %:", c3p, 7, 0, 8);
                 break;                        
         case inf:
 		        sendStringXY("9 - Information     ", 0, 0);
@@ -450,6 +519,16 @@ void imuPage(){
     server.sendContent("");  
 }
 
+void varPage() 
+{
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/html", pageHeader);
+    server.sendContent(bodyVar);
+    server.sendContent(pageFooter);
+    server.sendContent("");  
+ 
+}
+
 void pageNotFound() {
     server.send(404, "text/plain", "ooops page not found"); 
     
@@ -491,6 +570,17 @@ void getmcu()
                "}";
     Serial.println(response);
     server.send(200, "json", response);         
+}
+
+void getvar()
+{
+    String response;
+    response = "{\"v1m\":"  + String(v1m) + ",\"c1p\":" + String(c1p) + 
+               ",\"v2m\":"  + String(v2m) + ",\"c2p\":" + String(c2p) + 
+               ",\"v3m\":"  + String(v3m) + ",\"c3p\":" + String(c3p) +
+               "}";
+    //Serial.println(response);
+    server.send(200, "json", response); 
 }
 
 /*
@@ -597,6 +687,16 @@ void setup()
     tickerMPU9250.attach_ms(900, actualizeMPU9250);
     Serial.println("MPU9250             : OK");
 
+    // initialize battery
+    pinMode(PINV1T, INPUT);
+    pinMode(PINV2T, INPUT);
+    pinMode(PINV3T, INPUT);
+    k1m = 2.0;    // (20k + 20K) / 20k  is the resistive divisor inverse
+    k2m = 4.4;    // (68k + 20k) / 20k
+    k3m = 6.1;    // (51k + 10k) / 10k      
+    tickerBattery.attach(2, actualizeBattery);
+    Serial.println("Battery              : OK");
+
     // initialize console variables
     tickerConsole.attach(60, actualizeConsole);
     Serial.println("Console variables    : OK");
@@ -626,11 +726,13 @@ void setup()
     server.on("/Perf.html", perfPage);
     server.on("/BMP.html",  bmpPage);
     server.on("/IMU.html",  imuPage);
+    server.on("/Var.html",  varPage);
     server.onNotFound(pageNotFound);
     server.on("/getipv",    getipv);
     server.on("/getprf",    getprf);
     server.on("/getbmp",    getbmp);
     server.on("/getmcu",    getmcu);
+    server.on("/getvar",    getvar);
     server.begin();
 }
 

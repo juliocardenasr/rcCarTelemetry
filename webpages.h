@@ -5,7 +5,7 @@ char pageHeader[] = R"=====(
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MegaWifi</title>
+<title>Telemetry</title>
 <style>
 body {
 background-image: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
@@ -66,6 +66,7 @@ font-size: smaller;
 <li><a href="Perf.html">Performance</a></li>
 <li><a href="BMP.html">BMP280</a></li>
 <li><a href="IMU.html">MPU9250</a></li>
+<li><a href="Var.html">Var</a></li>
 </ul>
 )=====";
 
@@ -204,6 +205,11 @@ setInterval(getbmp, 1000);
 </script> 
 )=====";
 
+/*
+**************************************************************************************************
+  BodyIMU MCU9250, function getmcu
+**************************************************************************************************
+*/
 char bodyIMU[] = R"=====(
 <h1>IMU 9250 variables</h1>
 <form action="">
@@ -261,6 +267,54 @@ window.onload = getmcu();
 setInterval(getmcu, 1000);
 </script> 
 )=====";
+
+/*
+**************************************************************************************************
+  BodyVar Car variables, function getvar
+**************************************************************************************************
+*/
+char bodyVar[] = R"=====(
+<h1>Car variables</h1>
+<form action="">
+<fieldset>
+<legend>Car key values</legend>
+<div><label for="v1m">Voltage  cell 1</label><span id="v1m">_</span></div>
+<div><label for="c1p">Capacity cell 1</label><span id="c1p">_</span></div>
+<div><label for="v1m">Voltage  cell 2</label><span id="v2m">_</span></div>
+<div><label for="c1p">Capacity cell 2</label><span id="c2p">_</span></div>
+<div><label for="v1m">Voltage  cell 3</label><span id="v3m">_</span></div>
+<div><label for="c1p">Capacity cell 3</label><span id="c3p">_</span></div>
+</fieldset>
+</form>
+<script> 
+function getvar() {
+var reqxml
+var resp
+var obj
+reqxml = new XMLHttpRequest()
+reqxml.onreadystatechange = function () {
+if (this.readyState === 4 && this.status === 200) {
+resp = reqxml.responseText
+console.log(resp)
+obj = JSON.parse(resp)
+document.getElementById('v1m').innerHTML = obj.v1m
+document.getElementById('c1p').innerHTML = obj.c1p
+document.getElementById('v2m').innerHTML = obj.v2m
+document.getElementById('c2p').innerHTML = obj.c2p
+document.getElementById('v3m').innerHTML = obj.v3m
+document.getElementById('c3p').innerHTML = obj.c3p
+}
+}
+var urlXML = "/getvar"
+console.log(urlXML)
+reqxml.open('GET', urlXML, true)
+reqxml.send()
+}
+window.onload = getvar();
+setInterval(getvar, 5000);
+</script> 
+)=====";
+
 
 char pageFooter[] = R"=====(
 <footer>
