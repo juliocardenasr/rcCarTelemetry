@@ -47,9 +47,16 @@
 **************************************************************************************************
 */
 #include <WiFi.h>
+#include <WiFiMulti.h>
+
+WiFiMulti wifiMulti;
+
 #include "arduino_secrets.h"
-const char* ssid;
-const char* password;
+
+const char* ssid1;
+const char* password1;
+const char* ssid2;
+const char* password2;
 String ipLocal;
 String s_ssid;
 
@@ -463,7 +470,7 @@ void actualizeDisplay() {
                 break;
         default: 
                 break;                               
-    }
+    } wifiMulti.addAP(ssid1, password1);
     display.display();
 }
 
@@ -595,10 +602,13 @@ void setup()
     Serial.println("Serial port          : OK");
 
     //initialize wifi variables
-    ssid = SECRET_SSID;
-    password = SECRET_PASSWORD;
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) 
+    ssid1     = SECRET_SSID_1;
+    password1 = SECRET_PASSWORD_1;
+    ssid2     = SECRET_SSID_2;
+    password2 = SECRET_PASSWORD_2;
+    wifiMulti.addAP(ssid1, password1);
+    wifiMulti.addAP(ssid2, password2);
+    while (wifiMulti.run() != WL_CONNECTED) 
     {
         Serial.print(".");
         delay(500);
