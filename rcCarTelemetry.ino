@@ -310,6 +310,12 @@ void actualizeConsole()
     Serial.println(average);
     Serial.println();
 
+    Serial.print("IP Local   :  ");
+    Serial.println(ipLocal);
+    Serial.print("SSID       : ");
+    Serial.println(s_ssid);
+    Serial.println();
+
     Serial.print("Temperature: ");
     Serial.println(temperature);
     Serial.print("Pressure   : ");
@@ -545,7 +551,7 @@ void pageNotFound() {
 void getipv()
 {
     String response;
-    response = "{\"ip\":\"" + ipLocal + "\",\"ssid\":\"" + ssid + "\"}";
+    response = "{\"ip\":\"" + ipLocal + "\",\"ssid\":\"" + s_ssid + "\"}";
     Serial.println(response);
     server.send(200, "json", response);
   
