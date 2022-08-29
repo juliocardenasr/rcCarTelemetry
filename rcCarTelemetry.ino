@@ -476,7 +476,7 @@ void actualizeDisplay() {
                 break;
         default: 
                 break;                               
-    } wifiMulti.addAP(ssid1, password1);
+    } 
     display.display();
 }
 
@@ -552,7 +552,7 @@ void getipv()
 {
     String response;
     response = "{\"ip\":\"" + ipLocal + "\",\"ssid\":\"" + s_ssid + "\"}";
-    Serial.println(response);
+    //Serial.println(response);
     server.send(200, "json", response);
   
 }
@@ -561,14 +561,14 @@ void getprf()
 {
     String response;
     response = "{\"uptime\":\"" + stime + "\",\"average\":" + String(average) + "}";
-    Serial.println(response);
+    //Serial.println(response);
     server.send(200, "json", response);
 }
 
 void getbmp(){
     String response;
     response = "{\"temperature\":" + String(temperature) + ",\"pressure\":" + String(pressure) + ",\"altitude\":" + String(altitude) + "}";
-    Serial.println(response);
+    //Serial.println(response);
     server.send(200, "json", response);
 }
 
@@ -581,7 +581,7 @@ void getmcu()
                ",\"angx\":"  + String(angles.x)     + ",\"angy\":" + String(angles.y)     + ",\"angz\":" + String(angles.z)     +
                ",\"pitch\":" + String(pitch)        + ",\"roll\":" + String(roll)         +
                "}";
-    Serial.println(response);
+    //Serial.println(response);
     server.send(200, "json", response);         
 }
 
@@ -612,6 +612,8 @@ void setup()
     password1 = SECRET_PASSWORD_1;
     ssid2     = SECRET_SSID_2;
     password2 = SECRET_PASSWORD_2;
+
+    WiFi.mode(WIFI_STA);
     wifiMulti.addAP(ssid1, password1);
     wifiMulti.addAP(ssid2, password2);
     while (wifiMulti.run() != WL_CONNECTED) 
